@@ -25,4 +25,5 @@ jobs:
           mvn clean package -DskipTests
 
       - name: Build Docker image
-        run: docker build -t myapp:${{ github.run_number }} .
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/myapp:${{ github.run_number }} .
+
