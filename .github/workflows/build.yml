@@ -1,15 +1,16 @@
-name: Build JAR with Patch Version
+name: CI/CD - Build and Push
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source code
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up JDK 21
@@ -18,14 +19,24 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Update Patch Version and Build JAR
+      - name: Update Patch Version
         run: |
           mvn versions:set -DnewVersion=1.0.${{ github.run_number }}
           mvn versions:commit
-          mvn clean package -DskipTests
 
-      - name: Upload JAR Artifact
-        uses: actions/upload-artifact@v3
+      - name: Build JAR
+        run: mvn -B -DskipTests clean package
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
         with:
-          name: myapp-jar
-          path: target/*.jar
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/myapp:1.0.${{ github.run_number }} .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/myapp:1.0.${{ github.run_number }}
